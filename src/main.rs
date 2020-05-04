@@ -22,7 +22,6 @@ fn get_git_logs() -> String {
         .unwrap();
 
     let git_logs = str::from_utf8(&proc_output.stdout).unwrap();
-    let git_logs = git_logs.to_string();
 
-    git_logs
+    git_logs.to_string()
 }

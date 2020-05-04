@@ -15,7 +15,7 @@ pub fn to_commits(logs: &str) -> Vec<Commit> {
 
     let mut commit_builder = CommitBuilder::new();
 
-    for line in logs.split("\n") {
+    for line in logs.split('\n') {
         let mut should_build = false;
 
         commit_builder = match get_one(&re_hash, &line) {
@@ -38,7 +38,7 @@ pub fn to_commits(logs: &str) -> Vec<Commit> {
             Some(f) => {
                 should_build = true;
                 commit_builder.files(f.parse::<u32>().unwrap())
-            },
+            }
         };
 
         commit_builder = match get_one(&re_inserts, &line) {
@@ -71,7 +71,7 @@ fn get_one(re: &Regex, line: &str) -> Option<String> {
             let val = mat.as_str().to_string();
 
             Some(val)
-        },
+        }
     }
 }
 
@@ -88,6 +88,6 @@ fn get_two(re: &Regex, line: &str) -> Option<(String, String)> {
             let second_val = second_mat.as_str().to_string();
 
             Some((first_val, second_val))
-        },
+        }
     }
 }

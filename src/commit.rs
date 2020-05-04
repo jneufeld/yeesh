@@ -6,5 +6,5 @@ pub struct Commit {
     pub date: String,
     pub files: u32,
     pub inserts: u32,
-    pub deletes: u32
+    pub deletes: u32,
 }

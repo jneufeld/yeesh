@@ -1,7 +1,7 @@
 use crate::commit::Commit;
 
 pub struct CommitBuilder {
-    commit: Commit
+    commit: Commit,
 }
 
 impl CommitBuilder {
@@ -13,7 +13,7 @@ impl CommitBuilder {
             date: "".to_string(),
             files: 0,
             inserts: 0,
-            deletes: 0
+            deletes: 0,
         };
 
         CommitBuilder { commit }
