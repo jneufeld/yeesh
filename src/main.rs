@@ -9,7 +9,7 @@ fn main() {
     let logs = get_git_logs();
     let commits = log_parser::to_commits(&logs);
 
-    for commit in commits.iter() {
+    for commit in commits {
         println!("{:#?}", &commit);
     }
 }
