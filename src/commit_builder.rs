@@ -1,3 +1,5 @@
+use chrono::DateTime;
+
 use crate::commit::Commit;
 
 pub struct CommitBuilder {
@@ -10,7 +12,7 @@ impl CommitBuilder {
             hash: "".to_string(),
             name: "".to_string(),
             email: "".to_string(),
-            date: "".to_string(),
+            date: None,
             files: 0,
             inserts: 0,
             deletes: 0,
@@ -35,7 +37,11 @@ impl CommitBuilder {
     }
 
     pub fn date(mut self, date: String) -> CommitBuilder {
-        self.commit.date = date;
+        let date_time = DateTime::parse_from_rfc2822(&date);
+        let date_time = date_time.expect(&format!("Unable to parse date: {}", date));
+
+        self.commit.date = Some(date_time);
+
         self
     }
 
