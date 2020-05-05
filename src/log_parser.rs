@@ -10,8 +10,8 @@ pub fn to_commits(logs: &str) -> Vec<Commit> {
     let re_auth = Regex::new(r"^Author: (.+) <(.+)>$").unwrap();
     let re_date = Regex::new(r"^Date:(.+)$").unwrap();
     let re_files = Regex::new(r"(\d+) files? changed.+$").unwrap();
-    let re_inserts = Regex::new(r"\s(\d+) insertions.+$").unwrap();
-    let re_deletes = Regex::new(r"\s(\d+) deletions.+$").unwrap();
+    let re_inserts = Regex::new(r"\s(\d+) insertions?.+$").unwrap();
+    let re_deletes = Regex::new(r"\s(\d+) deletions?.+$").unwrap();
 
     let mut commit_builder = CommitBuilder::new();
 
