@@ -10,3 +10,17 @@ pub struct Commit {
     pub inserts: u32,
     pub deletes: u32,
 }
+
+impl Commit {
+    pub fn new() -> Commit {
+        Commit {
+            hash: "".to_string(),
+            name: "".to_string(),
+            email: "".to_string(),
+            date: None,
+            files: 0,
+            inserts: 0,
+            deletes: 0,
+        }
+    }
+}

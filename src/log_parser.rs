@@ -1,6 +1,6 @@
 use crate::commit::Commit;
-use crate::commit_builder::CommitBuilder;
 
+use chrono::DateTime;
 use regex::Regex;
 
 pub fn to_commits(logs: &str) -> Vec<Commit> {
@@ -13,48 +13,54 @@ pub fn to_commits(logs: &str) -> Vec<Commit> {
     let re_inserts = Regex::new(r"\s(\d+) insertions?.+$").unwrap();
     let re_deletes = Regex::new(r"\s(\d+) deletions?.+$").unwrap();
 
-    let mut commit_builder = CommitBuilder::new();
+    let mut commit = Commit::new();
 
     for line in logs.split('\n') {
-        let mut should_build = false;
+        let mut is_commit_ready = false;
 
-        commit_builder = match get_one(&re_hash, &line) {
-            None => commit_builder,
-            Some(h) => commit_builder.hash(h),
+        match get_one(&re_hash, &line) {
+            None => (),
+            Some(h) => commit.hash = h,
         };
 
-        commit_builder = match get_two(&re_auth, &line) {
-            None => commit_builder,
-            Some((name, email)) => commit_builder.name(name).email(email),
+        match get_two(&re_auth, &line) {
+            None => (),
+            Some((name, email)) => {
+                commit.name = name;
+                commit.email = email;
+            },
         };
 
-        commit_builder = match get_one(&re_date, &line) {
-            None => commit_builder,
-            Some(d) => commit_builder.date(d.trim().to_string()),
+        match get_one(&re_date, &line) {
+            None => (),
+            Some(d) => {
+                let date_time = DateTime::parse_from_rfc2822(&d);
+                let date_time = date_time.expect(&format!("Unable to parse date: {}", d));
+                commit.date = Some(date_time);
+            },
         };
 
-        commit_builder = match get_one(&re_files, &line) {
-            None => commit_builder,
+        match get_one(&re_files, &line) {
+            None => (),
             Some(f) => {
-                should_build = true;
-                commit_builder.files(f.parse::<u32>().unwrap())
-            }
+                is_commit_ready = true;
+                commit.files = f.parse::<u32>().unwrap();
+            },
         };
 
-        commit_builder = match get_one(&re_inserts, &line) {
-            None => commit_builder,
-            Some(i) => commit_builder.inserts(i.parse::<u32>().unwrap()),
+        match get_one(&re_inserts, &line) {
+            None => (),
+            Some(i) => commit.inserts = i.parse::<u32>().unwrap(),
         };
 
-        commit_builder = match get_one(&re_deletes, &line) {
-            None => commit_builder,
-            Some(d) => commit_builder.deletes(d.parse::<u32>().unwrap()),
+        match get_one(&re_deletes, &line) {
+            None => (),
+            Some(d) => commit.deletes = d.parse::<u32>().unwrap(),
         };
 
-        if should_build {
-            let commit = commit_builder.build();
+        if is_commit_ready {
             commits.push(commit);
-            commit_builder = CommitBuilder::new();
+            commit = Commit::new();
         }
     }
 

@@ -1,5 +1,4 @@
 mod commit;
-mod commit_builder;
 mod log_parser;
 
 use std::process::Command;
