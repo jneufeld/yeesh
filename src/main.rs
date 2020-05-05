@@ -53,6 +53,6 @@ fn print_by_hour(commits: &Vec<Commit>) {
 
     for hour in 0..hours_in_day {
         let commits = by_hour.get(&hour).unwrap();
-        println!("{:02}: {}", hour, commits);
+        println!("{:02} | {}", hour, "-".repeat(*commits));
     }
 }
