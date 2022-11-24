@@ -4,8 +4,13 @@ version = "0.1.0"
 authors = ["Jonathan Neufeld <jneufeld@alumni.ubc.ca>"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 chrono = "0.4"
 regex = "1"
+
+# Justification: convenience
+#
+# Feature-rich crates like clap are capable of more but donny doesn't need that.
+# Conversely, writing arg parsing with the standard library is fine but not
+# always convenient. This is somewhere inbetween.
+pico-args = "0.5"

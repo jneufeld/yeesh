@@ -2,18 +2,38 @@ mod commit;
 mod log_parser;
 
 use std::collections::HashMap;
-use std::process::Command;
+use std::process::{self, Command};
 use std::str;
 
 use chrono::Timelike;
 
 use crate::commit::Commit;
 
+const HELP: &str = "\
+git_hours: simple stats for git repositories
+
+USAGE:
+  git_hours [-h]
+ARGS:
+  -h, --help    Prints this message
+";
+
 fn main() {
+    check_args();
+
     let logs = get_git_logs();
     let commits = log_parser::to_commits(&logs);
 
     print_by_hour(&commits);
+}
+
+fn check_args() {
+    let mut args = pico_args::Arguments::from_env();
+
+    if args.contains(["-h", "--help"]) {
+        print!("{}", HELP);
+        process::exit(1);
+    }
 }
 
 fn get_git_logs() -> String {
