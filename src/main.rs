@@ -1,5 +1,6 @@
 mod commit;
 mod log_parser;
+mod parser;
 
 use std::collections::HashMap;
 use std::process::{self, Command};
