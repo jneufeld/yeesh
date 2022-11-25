@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
-use chrono::DateTime;
 use lazy_static::lazy_static;
 use regex::Regex;
+use time::{macros::format_description, PrimitiveDateTime};
 
 use crate::commit::Commit;
 
@@ -76,12 +76,15 @@ impl Parser<Date> {
         match one_match(&DATE_REGEX, line) {
             Err(why) => Err(why),
             Ok(value) => {
-                let value = DateTime::parse_from_rfc2822(&value);
-                let value = value.map_err(|_| ParsingError::BadDate)?;
+                let value = value.trim();
+
+                let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+                let date =
+                    PrimitiveDateTime::parse(&value, format).map_err(|_| ParsingError::BadDate)?;
 
                 Ok(Parser::<Files> {
                     state: PhantomData::<Files>,
-                    commit: self.commit.date(value),
+                    commit: self.commit.date(date),
                 })
             }
         }
@@ -185,6 +188,8 @@ fn two_matches(regex: &Regex, line: &str) -> Result<(String, String), ParsingErr
 mod tests {
     use std::marker::PhantomData;
 
+    use time::Month;
+
     use crate::parser::{Author, Deletes, Files, Inserts};
 
     use super::{Date, Parser, ParsingError};
@@ -266,12 +271,16 @@ mod tests {
             commit: Default::default(),
         };
 
-        let line = "Date: Thu, 24 Nov 2022 18:10:05 -0800";
+        let line = "Date:   2022-11-24 21:07:24";
 
         match parser.parse(line) {
             Err(why) => panic!("Failed to parse date ({}) because {:?}", line, why),
             Ok(result) => {
-                let date = result.commit.date.unwrap();
+                let date = result.commit.date;
+
+                assert_eq!(date.year(), 2022);
+                assert_eq!(date.month(), Month::November);
+                assert_eq!(date.day(), 24);
             }
         }
     }

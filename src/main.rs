@@ -1,12 +1,9 @@
 mod commit;
-mod log_parser;
 mod parser;
 
 use std::collections::HashMap;
 use std::process::{self, Command};
 use std::str;
-
-use chrono::Timelike;
 
 use crate::commit::Commit;
 
@@ -22,10 +19,7 @@ ARGS:
 fn main() {
     check_args();
 
-    let logs = get_git_logs();
-    let commits = log_parser::to_commits(&logs);
-
-    print_by_hour(&commits);
+    let _logs = get_git_logs();
 }
 
 fn check_args() {
@@ -38,10 +32,17 @@ fn check_args() {
 }
 
 fn get_git_logs() -> String {
+    // The date format below yields the committer's local date. Regardless when
+    // (or where) this program is run, the local time of the commit is what gets
+    // captured. This is more meaningful than coverting dates and times into the
+    // local timezone of the person running the tool.
+    //
+    // The following StackOverflow discussion has more details:
+    // https://stackoverflow.com/questions/7853332/how-to-change-git-log-date-formats
     let proc_output = Command::new("git")
         .arg("log")
         .arg("--stat")
-        .arg("--date=rfc2822")
+        .arg("--date=format:'%Y-%m-%d %H:%M:%S'")
         .output()
         .unwrap();
 
@@ -62,7 +63,7 @@ fn print_by_hour(commits: &Vec<Commit>) {
     }
 
     for commit in commits {
-        let date = commit.date.unwrap();
+        let date = commit.date;
         let hour = date.hour();
 
         // Getting the current value inside the `insert` is ugly but satisfies
