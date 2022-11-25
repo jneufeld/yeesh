@@ -13,7 +13,7 @@ pub fn to_commits(logs: &str) -> Vec<Commit> {
     let re_inserts = Regex::new(r"\s(\d+) insertions?.+$").unwrap();
     let re_deletes = Regex::new(r"\s(\d+) deletions?.+$").unwrap();
 
-    let mut commit = Commit::new();
+    let mut commit = Commit::default();
 
     for line in logs.split('\n') {
         let mut is_commit_ready = false;
@@ -60,7 +60,7 @@ pub fn to_commits(logs: &str) -> Vec<Commit> {
 
         if is_commit_ready {
             commits.push(commit);
-            commit = Commit::new();
+            commit = Commit::default();
         }
     }
 
