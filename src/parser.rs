@@ -41,13 +41,12 @@ lazy_static! {
 
 impl Parser<Hash> {
     pub fn parse(self, line: &str) -> Result<Parser<Author>, ParsingError> {
-        match one_match(&HASH_REGEX, line) {
-            Err(why) => Err(why),
-            Ok(hash) => Ok(Parser::<Author> {
-                state: PhantomData::<Author>,
-                commit: self.commit.hash(&hash),
-            }),
-        }
+        let hash = one_match(&HASH_REGEX, line)?;
+
+        Ok(Parser::<Author> {
+            state: PhantomData::<Author>,
+            commit: self.commit.hash(&hash),
+        })
     }
 }
 
@@ -57,13 +56,12 @@ lazy_static! {
 
 impl Parser<Author> {
     pub fn parse(self, line: &str) -> Result<Parser<Date>, ParsingError> {
-        match two_matches(&AUTHOR_REGEX, line) {
-            Err(why) => Err(why),
-            Ok((name, email)) => Ok(Parser::<Date> {
-                state: PhantomData::<Date>,
-                commit: self.commit.name(&name).email(&email),
-            }),
-        }
+        let (name, email) = two_matches(&AUTHOR_REGEX, line)?;
+
+        Ok(Parser::<Date> {
+            state: PhantomData::<Date>,
+            commit: self.commit.name(&name).email(&email),
+        })
     }
 }
 
@@ -73,21 +71,16 @@ lazy_static! {
 
 impl Parser<Date> {
     pub fn parse(self, line: &str) -> Result<Parser<Files>, ParsingError> {
-        match one_match(&DATE_REGEX, line) {
-            Err(why) => Err(why),
-            Ok(value) => {
-                let value = value.trim();
+        let date = one_match(&DATE_REGEX, line)?;
+        let date = date.trim();
 
-                let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
-                let date =
-                    PrimitiveDateTime::parse(&value, format).map_err(|_| ParsingError::BadDate)?;
+        let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+        let date = PrimitiveDateTime::parse(date, format).map_err(|_| ParsingError::BadDate)?;
 
-                Ok(Parser::<Files> {
-                    state: PhantomData::<Files>,
-                    commit: self.commit.date(date),
-                })
-            }
-        }
+        Ok(Parser::<Files> {
+            state: PhantomData::<Files>,
+            commit: self.commit.date(date),
+        })
     }
 }
 
@@ -97,17 +90,13 @@ lazy_static! {
 
 impl Parser<Files> {
     pub fn parse(self, line: &str) -> Result<Parser<Inserts>, ParsingError> {
-        match one_match(&FILES_REGEX, line) {
-            Err(why) => Err(why),
-            Ok(value) => {
-                let count = value.parse::<u32>().unwrap();
+        let files = one_match(&FILES_REGEX, line)?;
+        let files = files.parse::<u32>().unwrap();
 
-                Ok(Parser::<Inserts> {
-                    state: PhantomData::<Inserts>,
-                    commit: self.commit.files(count),
-                })
-            }
-        }
+        Ok(Parser::<Inserts> {
+            state: PhantomData::<Inserts>,
+            commit: self.commit.files(files),
+        })
     }
 }
 
@@ -117,17 +106,13 @@ lazy_static! {
 
 impl Parser<Inserts> {
     pub fn parse(self, line: &str) -> Result<Parser<Deletes>, ParsingError> {
-        match one_match(&INSERTS_REGEX, line) {
-            Err(why) => Err(why),
-            Ok(value) => {
-                let count = value.parse::<u32>().unwrap();
+        let inserts = one_match(&INSERTS_REGEX, line)?;
+        let inserts = inserts.parse::<u32>().unwrap();
 
-                Ok(Parser::<Deletes> {
-                    state: PhantomData::<Deletes>,
-                    commit: self.commit.inserts(count),
-                })
-            }
-        }
+        Ok(Parser::<Deletes> {
+            state: PhantomData::<Deletes>,
+            commit: self.commit.inserts(inserts),
+        })
     }
 }
 
@@ -137,17 +122,13 @@ lazy_static! {
 
 impl Parser<Deletes> {
     pub fn parse(self, line: &str) -> Result<Parser<Accept>, ParsingError> {
-        match one_match(&DELETES_REGEX, line) {
-            Err(why) => Err(why),
-            Ok(value) => {
-                let count = value.parse::<u32>().unwrap();
+        let deletes = one_match(&DELETES_REGEX, line)?;
+        let deletes = deletes.parse::<u32>().unwrap();
 
-                Ok(Parser::<Accept> {
-                    state: PhantomData::<Accept>,
-                    commit: self.commit.deletes(count),
-                })
-            }
-        }
+        Ok(Parser::<Accept> {
+            state: PhantomData::<Accept>,
+            commit: self.commit.deletes(deletes),
+        })
     }
 }
 
