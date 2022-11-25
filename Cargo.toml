@@ -14,3 +14,10 @@ regex = "1"
 # Conversely, writing arg parsing with the standard library is fine but not
 # always convenient. This is somewhere inbetween.
 pico-args = "0.5"
+
+# Justification: performance and convencience
+#
+# Regular expressions should be compiled only once, and the `regex` crate
+# recommends using `lazy_static` to accomplish this. The alternative is either
+# messy code or the anti-pattern of re-compiling regular expressions.
+lazy_static = "1.4.0"

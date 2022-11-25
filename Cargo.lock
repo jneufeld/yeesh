@@ -33,6 +33,7 @@ name = "git_hours"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "lazy_static",
  "pico-args",
  "regex",
 ]

@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use lazy_static::lazy_static;
 use regex::Regex;
 
 #[derive(Debug, PartialEq)]
@@ -28,11 +29,13 @@ impl Default for Parser<Hash> {
     }
 }
 
+lazy_static! {
+    static ref HASH_REGEX: Regex = Regex::new(r"^commit (.+)$").unwrap();
+}
+
 impl Parser<Hash> {
     pub fn parse(&self, line: &str) -> Result<Parser<Author>, ParsingError> {
-        let regex = Regex::new(r"^commit (.+)$").unwrap();
-
-        match one_match(&regex, line) {
+        match one_match(&HASH_REGEX, line) {
             Err(why) => Err(why),
             Ok(_value) => Ok(Parser::<Author> {
                 state: PhantomData::<Author>,
@@ -41,11 +44,13 @@ impl Parser<Hash> {
     }
 }
 
+lazy_static! {
+    static ref AUTHOR_REGEX: Regex = Regex::new(r"^Author: (.+) <(.+)>$").unwrap();
+}
+
 impl Parser<Author> {
     pub fn parse(&self, line: &str) -> Result<Parser<Date>, ParsingError> {
-        let regex = Regex::new(r"^Author: (.+) <(.+)>$").unwrap();
-
-        match two_matches(&regex, line) {
+        match two_matches(&AUTHOR_REGEX, line) {
             Err(why) => Err(why),
             Ok((_first, _second)) => Ok(Parser::<Date> {
                 state: PhantomData::<Date>,
@@ -54,11 +59,13 @@ impl Parser<Author> {
     }
 }
 
+lazy_static! {
+    static ref DATE_REGEX: Regex = Regex::new(r"^Date:(.+)$").unwrap();
+}
+
 impl Parser<Date> {
     pub fn parse(&self, line: &str) -> Result<Parser<Files>, ParsingError> {
-        let regex = Regex::new(r"^Date:(.+)$").unwrap();
-
-        match one_match(&regex, line) {
+        match one_match(&DATE_REGEX, line) {
             Err(why) => Err(why),
             Ok(_value) => Ok(Parser::<Files> {
                 state: PhantomData::<Files>,
@@ -67,11 +74,13 @@ impl Parser<Date> {
     }
 }
 
+lazy_static! {
+    static ref FILES_REGEX: Regex = Regex::new(r"(\d+) files? changed.+$").unwrap();
+}
+
 impl Parser<Files> {
     pub fn parse(&self, line: &str) -> Result<Parser<Inserts>, ParsingError> {
-        let regex = Regex::new(r"(\d+) files? changed.+$").unwrap();
-
-        match one_match(&regex, line) {
+        match one_match(&FILES_REGEX, line) {
             Err(why) => Err(why),
             Ok(_value) => Ok(Parser::<Inserts> {
                 state: PhantomData::<Inserts>,
@@ -80,11 +89,13 @@ impl Parser<Files> {
     }
 }
 
+lazy_static! {
+    static ref INSERTS_REGEX: Regex = Regex::new(r"\s(\d+) insertions?.+$").unwrap();
+}
+
 impl Parser<Inserts> {
     pub fn parse(&self, line: &str) -> Result<Parser<Deletes>, ParsingError> {
-        let regex = Regex::new(r"\s(\d+) insertions?.+$").unwrap();
-
-        match one_match(&regex, line) {
+        match one_match(&INSERTS_REGEX, line) {
             Err(why) => Err(why),
             Ok(_value) => Ok(Parser::<Deletes> {
                 state: PhantomData::<Deletes>,
@@ -93,11 +104,13 @@ impl Parser<Inserts> {
     }
 }
 
+lazy_static! {
+    static ref DELETES_REGEX: Regex = Regex::new(r"\s(\d+) deletions?.+$").unwrap();
+}
+
 impl Parser<Deletes> {
     pub fn parse(&self, line: &str) -> Result<Parser<Accept>, ParsingError> {
-        let regex = Regex::new(r"\s(\d+) deletions?.+$").unwrap();
-
-        match one_match(&regex, line) {
+        match one_match(&DELETES_REGEX, line) {
             Err(why) => Err(why),
             Ok(_value) => Ok(Parser::<Accept> {
                 state: PhantomData::<Accept>,
