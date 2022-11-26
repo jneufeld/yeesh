@@ -1,6 +1,6 @@
 use time::{macros::datetime, PrimitiveDateTime};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Commit {
     pub hash: String,
     pub name: String,
@@ -26,42 +26,5 @@ impl Default for Commit {
             inserts: Default::default(),
             deletes: Default::default(),
         }
-    }
-}
-
-impl Commit {
-    pub fn hash(mut self, value: &str) -> Self {
-        self.hash = String::from(value);
-        self
-    }
-
-    pub fn name(mut self, value: &str) -> Self {
-        self.name = String::from(value);
-        self
-    }
-
-    pub fn email(mut self, value: &str) -> Self {
-        self.email = String::from(value);
-        self
-    }
-
-    pub fn date(mut self, value: PrimitiveDateTime) -> Self {
-        self.date = value;
-        self
-    }
-
-    pub fn files(mut self, value: u32) -> Self {
-        self.files = value;
-        self
-    }
-
-    pub fn inserts(mut self, value: u32) -> Self {
-        self.inserts = value;
-        self
-    }
-
-    pub fn deletes(mut self, value: u32) -> Self {
-        self.deletes = value;
-        self
     }
 }
