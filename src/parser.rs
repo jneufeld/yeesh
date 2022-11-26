@@ -4,23 +4,52 @@ use time::{macros::format_description, PrimitiveDateTime};
 
 use crate::commit::Commit;
 
+/// Meager attempt to indicate what went wrong while parsing git logs
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParsingError {
+    /// Used when parsing started for a commit but not all required fields have
+    /// been parsed. E.g. the input contains only the hash and author but no
+    /// message or stats.
     ExpectedMoreInput,
+
+    /// Indicates an expected field isn't present. E.g. the author's name and
+    /// email follow the hash but aren't present.
     NoMatch(String),
+
+    /// Parsing found the right type of line but wasn't able to extract the
+    /// required information. E.g. the commit's stats are present but not in the
+    /// expected format.
     BadMatch,
+
+    /// Indicates the date is present but in an unexpected format
     BadDate,
 }
 
+/// Represents the state machine's current state
 enum State {
+    /// Used to successfully terminate if no more lines are available for
+    /// parsing or prepare the state machine to parse a commit
     Start,
+
+    /// Indicates the parser expects the next line to contain the commit's hash
     Hash,
+
+    /// Indicates the parser expects the next line to contain the author's name
+    /// and email
     Author,
+
+    /// Indicates the parser expects the next line to contain the date
     Date,
+
+    /// Indicates the parser expects the next line to contain the number of
+    /// files modified, insertions, and deletions
     Stats,
+
+    /// Used to clean up success parsing of a commit
     Accept,
 }
 
+// Compile regular expressions only once and at compile time
 lazy_static! {
     // TODO Fix so hash doesn't include `(HEAD -> main)`. Will require
     // additional and/or updated tests.
@@ -32,6 +61,13 @@ lazy_static! {
     static ref DELETES_REGEX: Regex = Regex::new(r"\s(\d+) deletions?.+$").unwrap();
 }
 
+/// Given an input in the format of git logs this will return the commits. If
+/// parsing fails the result contains a meaningful error.
+///
+/// Note that the input format is specific. That is, the git logs must contain
+/// stats via `--stat` and a particular date format. These are defined in
+/// `main.rs` and are tightly coupled to the implementation. In other words,
+/// this is brittle!
 pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
     let mut result = Vec::new();
 
@@ -40,6 +76,8 @@ pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
 
     let mut lines = input.split("\n").peekable();
 
+    // TODO This loop is too long and contains too much logic. Refactor into
+    // helper functions to make the code more readable.
     loop {
         match state {
             State::Start => match lines.peek() {
@@ -124,6 +162,8 @@ pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
     Ok(result)
 }
 
+/// Expect a single match from the given regular expression on the input. Return
+/// the value as a `String` or a parsing error.
 fn one_match(regex: &Regex, line: &str) -> Result<String, ParsingError> {
     match regex.captures(line) {
         None => {
@@ -139,6 +179,8 @@ fn one_match(regex: &Regex, line: &str) -> Result<String, ParsingError> {
     }
 }
 
+/// Expect two matches from the given regular expression on the input. Return
+/// the value as a `String` or a parsing error.
 fn two_matches(regex: &Regex, line: &str) -> Result<(String, String), ParsingError> {
     match regex.captures(line) {
         None => {
