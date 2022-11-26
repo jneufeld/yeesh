@@ -6,8 +6,18 @@ use time::{macros::format_description, PrimitiveDateTime};
 
 use crate::commit::Commit;
 
-#[derive(Debug, PartialEq)]
-enum ParsingError {
+pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
+    let parser = Parser::default();
+
+    for line in input.split("\n") {
+        parser.parse(line);
+    }
+
+    todo!()
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ParsingError {
     NoMatch,
     BadMatch,
     BadDate,
@@ -23,14 +33,16 @@ struct Accept;
 
 struct Parser<State> {
     state: PhantomData<State>,
-    commit: Commit,
+    current: Commit,
+    commits: Vec<Commit>,
 }
 
 impl Default for Parser<Hash> {
     fn default() -> Self {
         Self {
             state: Default::default(),
-            commit: Default::default(),
+            current: Default::default(),
+            commits: Vec::new(),
         }
     }
 }
@@ -40,12 +52,13 @@ lazy_static! {
 }
 
 impl Parser<Hash> {
-    pub fn parse(self, line: &str) -> Result<Parser<Author>, ParsingError> {
+    fn parse(self, line: &str) -> Result<Parser<Author>, ParsingError> {
         let hash = one_match(&HASH_REGEX, line)?;
 
         Ok(Parser::<Author> {
             state: PhantomData::<Author>,
-            commit: self.commit.hash(&hash),
+            current: self.current.hash(&hash),
+            commits: self.commits,
         })
     }
 }
@@ -55,12 +68,13 @@ lazy_static! {
 }
 
 impl Parser<Author> {
-    pub fn parse(self, line: &str) -> Result<Parser<Date>, ParsingError> {
+    fn parse(self, line: &str) -> Result<Parser<Date>, ParsingError> {
         let (name, email) = two_matches(&AUTHOR_REGEX, line)?;
 
         Ok(Parser::<Date> {
             state: PhantomData::<Date>,
-            commit: self.commit.name(&name).email(&email),
+            current: self.current.name(&name).email(&email),
+            commits: self.commits,
         })
     }
 }
@@ -70,7 +84,7 @@ lazy_static! {
 }
 
 impl Parser<Date> {
-    pub fn parse(self, line: &str) -> Result<Parser<Files>, ParsingError> {
+    fn parse(self, line: &str) -> Result<Parser<Files>, ParsingError> {
         let date = one_match(&DATE_REGEX, line)?;
         let date = date.trim();
 
@@ -79,7 +93,8 @@ impl Parser<Date> {
 
         Ok(Parser::<Files> {
             state: PhantomData::<Files>,
-            commit: self.commit.date(date),
+            current: self.current.date(date),
+            commits: self.commits,
         })
     }
 }
@@ -89,13 +104,14 @@ lazy_static! {
 }
 
 impl Parser<Files> {
-    pub fn parse(self, line: &str) -> Result<Parser<Inserts>, ParsingError> {
+    fn parse(self, line: &str) -> Result<Parser<Inserts>, ParsingError> {
         let files = one_match(&FILES_REGEX, line)?;
         let files = files.parse::<u32>().unwrap();
 
         Ok(Parser::<Inserts> {
             state: PhantomData::<Inserts>,
-            commit: self.commit.files(files),
+            current: self.current.files(files),
+            commits: self.commits,
         })
     }
 }
@@ -105,13 +121,14 @@ lazy_static! {
 }
 
 impl Parser<Inserts> {
-    pub fn parse(self, line: &str) -> Result<Parser<Deletes>, ParsingError> {
+    fn parse(self, line: &str) -> Result<Parser<Deletes>, ParsingError> {
         let inserts = one_match(&INSERTS_REGEX, line)?;
         let inserts = inserts.parse::<u32>().unwrap();
 
         Ok(Parser::<Deletes> {
             state: PhantomData::<Deletes>,
-            commit: self.commit.inserts(inserts),
+            current: self.current.inserts(inserts),
+            commits: self.commits,
         })
     }
 }
@@ -121,20 +138,25 @@ lazy_static! {
 }
 
 impl Parser<Deletes> {
-    pub fn parse(self, line: &str) -> Result<Parser<Accept>, ParsingError> {
+    fn parse(self, line: &str) -> Result<Parser<Accept>, ParsingError> {
         let deletes = one_match(&DELETES_REGEX, line)?;
         let deletes = deletes.parse::<u32>().unwrap();
 
         Ok(Parser::<Accept> {
             state: PhantomData::<Accept>,
-            commit: self.commit.deletes(deletes),
+            current: self.current.deletes(deletes),
+            commits: self.commits,
         })
     }
 }
 
 impl Parser<Accept> {
-    pub fn parse(&self) -> Parser<Hash> {
-        todo!()
+    fn parse(self) -> Result<Parser<Hash>, ParsingError> {
+        Ok(Parser::<Hash> {
+            state: PhantomData::<Hash>,
+            current: Commit::default(),
+            commits: self.commits,
+        })
     }
 }
 
@@ -171,9 +193,7 @@ mod tests {
 
     use time::Month;
 
-    use crate::parser::{Author, Deletes, Files, Inserts};
-
-    use super::{Date, Parser, ParsingError};
+    use super::{Author, Date, Deletes, Files, Inserts, Parser, ParsingError};
 
     #[test]
     fn hash() {
@@ -182,7 +202,7 @@ mod tests {
 
         match parser.parse(line) {
             Err(why) => panic!("Failed to parse hash ({}) because {:?}", line, why),
-            Ok(result) => assert_eq!(result.commit.hash, "9f617"),
+            Ok(result) => assert_eq!(result.current.hash, "9f617"),
         }
     }
 
@@ -201,7 +221,8 @@ mod tests {
     fn author() {
         let parser = Parser::<Author> {
             state: PhantomData::<Author>,
-            commit: Default::default(),
+            current: Default::default(),
+            commits: Vec::new(),
         };
 
         let line = "Author: First Middle Last <email@alumni.ubc.ca>";
@@ -209,8 +230,8 @@ mod tests {
         match parser.parse(line) {
             Err(why) => panic!("Failed to parse hash ({}) because {:?}", line, why),
             Ok(result) => {
-                assert_eq!(result.commit.name, "First Middle Last");
-                assert_eq!(result.commit.email, "email@alumni.ubc.ca");
+                assert_eq!(result.current.name, "First Middle Last");
+                assert_eq!(result.current.email, "email@alumni.ubc.ca");
             }
         }
     }
@@ -219,7 +240,8 @@ mod tests {
     fn missing_author_name() {
         let parser = Parser::<Author> {
             state: PhantomData::<Author>,
-            commit: Default::default(),
+            current: Default::default(),
+            commits: Vec::new(),
         };
 
         let line = "Author: <email@alumni.ubc.ca>";
@@ -234,7 +256,8 @@ mod tests {
     fn missing_author_email() {
         let parser = Parser::<Author> {
             state: PhantomData::<Author>,
-            commit: Default::default(),
+            current: Default::default(),
+            commits: Vec::new(),
         };
 
         let line = "Author: First Middle Last";
@@ -249,7 +272,8 @@ mod tests {
     fn date() {
         let parser = Parser::<Date> {
             state: PhantomData::<Date>,
-            commit: Default::default(),
+            current: Default::default(),
+            commits: Vec::new(),
         };
 
         let line = "Date:   2022-11-24 21:07:24";
@@ -257,7 +281,7 @@ mod tests {
         match parser.parse(line) {
             Err(why) => panic!("Failed to parse date ({}) because {:?}", line, why),
             Ok(result) => {
-                let date = result.commit.date;
+                let date = result.current.date;
 
                 assert_eq!(date.year(), 2022);
                 assert_eq!(date.month(), Month::November);
@@ -270,7 +294,8 @@ mod tests {
     fn missing_date() {
         let parser = Parser::<Date> {
             state: PhantomData::<Date>,
-            commit: Default::default(),
+            current: Default::default(),
+            commits: Vec::new(),
         };
 
         let line = "Thursday";
@@ -284,15 +309,16 @@ mod tests {
     #[test]
     fn files() {
         let parser = Parser::<Files> {
-            commit: Default::default(),
+            current: Default::default(),
             state: PhantomData::<Files>,
+            commits: Vec::new(),
         };
 
         let line = "1 files changed, 2 insertions(+), 3 deletions(-)";
 
         match parser.parse(line) {
             Err(why) => panic!("Failed to parse hash ({}) because {:?}", line, why),
-            Ok(result) => assert_eq!(result.commit.files, 1),
+            Ok(result) => assert_eq!(result.current.files, 1),
         }
     }
 
@@ -300,14 +326,15 @@ mod tests {
     fn inserts() {
         let parser = Parser::<Inserts> {
             state: PhantomData::<Inserts>,
-            commit: Default::default(),
+            current: Default::default(),
+            commits: Vec::new(),
         };
 
         let line = "1 files changed, 2 insertions(+), 3 deletions(-)";
 
         match parser.parse(line) {
             Err(why) => panic!("Failed to parse hash ({}) because {:?}", line, why),
-            Ok(result) => assert_eq!(result.commit.inserts, 2),
+            Ok(result) => assert_eq!(result.current.inserts, 2),
         }
     }
 
@@ -315,14 +342,59 @@ mod tests {
     fn deletes() {
         let parser = Parser::<Deletes> {
             state: PhantomData::<Deletes>,
-            commit: Default::default(),
+            current: Default::default(),
+            commits: Vec::new(),
         };
 
         let line = "1 files changed, 2 insertions(+), 3 deletions(-)";
 
         match parser.parse(line) {
             Err(why) => panic!("Failed to parse hash ({}) because {:?}", line, why),
-            Ok(result) => assert_eq!(result.commit.deletes, 3),
+            Ok(result) => assert_eq!(result.current.deletes, 3),
+        }
+    }
+
+    #[test]
+    fn message_line() {
+        let parser = Parser::<Files> {
+            current: Default::default(),
+            state: PhantomData::<Files>,
+            commits: Vec::new(),
+        };
+
+        let line = "Refactor parser error handling";
+
+        match parser.parse(line) {
+            Ok(_) => panic!("fail"),
+            Err(why) => assert_eq!(why, ParsingError::NoMatch),
+        }
+    }
+
+    #[test]
+    fn single_commit() {
+        let input = r"commit a75c00d4baa851fbd03d514cd980c999153fc21f (HEAD -> main)
+Author: Jonathan Neufeld <jneufeld@alumni.ubc.ca>
+Date:   2022-11-24 22:11:50
+
+  Refactor parser error handling
+
+  src/parser.rs | 105 +++++++++++++++++++++++++++++++++++++++++++--------------------------------------------------------------
+  1 file changed, 43 insertions(+), 62 deletions(-)";
+
+        match super::parse(input) {
+            Err(why) => panic!("Error parsing commit because {:?}", why),
+            Ok(commits) => {
+                assert_eq!(commits.len(), 1);
+
+                let commit = commits.get(0).unwrap();
+
+                assert_eq!(commit.hash, "a75c00d4baa851fbd03d514cd980c999153fc21f");
+                assert_eq!(commit.name, "Jonathan Neufeld");
+                assert_eq!(commit.email, "jneufeld@alumni.ubc.ca");
+                assert_eq!(commit.files, 1);
+                assert_eq!(commit.inserts, 43);
+                assert_eq!(commit.deletes, 62);
+            }
         }
     }
 }
