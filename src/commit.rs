@@ -1,10 +1,30 @@
 use time::{macros::datetime, PrimitiveDateTime};
 
 #[derive(Debug, Clone)]
-pub struct Commit {
-    pub hash: String,
+pub struct Author {
     pub name: String,
     pub email: String,
+}
+
+impl Default for Author {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            email: Default::default(),
+        }
+    }
+}
+
+impl Author {
+    pub fn new(name: String, email: String) -> Author {
+        Author { name, email }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Commit {
+    pub hash: String,
+    pub author: Author,
     pub date: PrimitiveDateTime,
     pub files: u32,
     pub inserts: u32,
@@ -19,8 +39,7 @@ impl Default for Commit {
 
         Self {
             hash: Default::default(),
-            name: Default::default(),
-            email: Default::default(),
+            author: Default::default(),
             date: unix_epoch,
             files: Default::default(),
             inserts: Default::default(),

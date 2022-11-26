@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use time::{macros::format_description, PrimitiveDateTime};
 
-use crate::commit::Commit;
+use crate::commit::{Author, Commit};
 
 /// Meager attempt to indicate what went wrong while parsing git logs
 #[derive(Debug, PartialEq, Eq)]
@@ -98,11 +98,7 @@ pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
                 state = State::Author;
             }
             State::Author => {
-                let (name, email) = parse_author(lines.next())?;
-
-                commit.name = name;
-                commit.email = email;
-
+                commit.author = parse_author(lines.next())?;
                 state = State::Date;
             }
             State::Date => {
@@ -143,12 +139,12 @@ fn parse_hash(line: Option<&str>) -> Result<String, ParsingError> {
     Ok(hash)
 }
 
-// TODO Make an author type to replace the tuple
-fn parse_author(line: Option<&str>) -> Result<(String, String), ParsingError> {
+fn parse_author(line: Option<&str>) -> Result<Author, ParsingError> {
     let line = line.ok_or(ParsingError::ExpectedMoreInput)?;
     let (name, email) = two_matches(&AUTHOR_REGEX, line)?;
+    let author = Author::new(name, email);
 
-    Ok((name, email))
+    Ok(author)
 }
 
 fn parse_date(line: Option<&str>) -> Result<PrimitiveDateTime, ParsingError> {
@@ -230,8 +226,8 @@ Date:   2022-11-24 22:11:50
                 let commit = commits.get(0).unwrap();
 
                 assert_eq!(commit.hash, "a75c00d4baa851fbd03d514cd980c999153fc21f");
-                assert_eq!(commit.name, "Jonathan Neufeld");
-                assert_eq!(commit.email, "jneufeld@alumni.ubc.ca");
+                assert_eq!(commit.author.name, "Jonathan Neufeld");
+                assert_eq!(commit.author.email, "jneufeld@alumni.ubc.ca");
                 assert_eq!(commit.files, 1);
                 assert_eq!(commit.inserts, 43);
                 assert_eq!(commit.deletes, 62);
@@ -257,8 +253,8 @@ Date:   2022-11-24 22:11:50
                 let commit = commits.get(0).unwrap();
 
                 assert_eq!(commit.hash, "a75");
-                assert_eq!(commit.name, "Jonathan Neufeld");
-                assert_eq!(commit.email, "jneufeld@alumni.ubc.ca");
+                assert_eq!(commit.author.name, "Jonathan Neufeld");
+                assert_eq!(commit.author.email, "jneufeld@alumni.ubc.ca");
                 assert_eq!(commit.files, 1);
                 assert_eq!(commit.inserts, 43);
                 assert_eq!(commit.deletes, 0);
@@ -284,8 +280,8 @@ Date:   2022-11-24 22:11:50
                 let commit = commits.get(0).unwrap();
 
                 assert_eq!(commit.hash, "a75");
-                assert_eq!(commit.name, "Jonathan Neufeld");
-                assert_eq!(commit.email, "jneufeld@alumni.ubc.ca");
+                assert_eq!(commit.author.name, "Jonathan Neufeld");
+                assert_eq!(commit.author.email, "jneufeld@alumni.ubc.ca");
                 assert_eq!(commit.files, 1);
                 assert_eq!(commit.inserts, 0);
                 assert_eq!(commit.deletes, 62);
@@ -319,8 +315,8 @@ Date:   2022-11-24 22:11:50
                 let commit = commits.get(0).unwrap();
 
                 assert_eq!(commit.hash, "abc123");
-                assert_eq!(commit.name, "Jon");
-                assert_eq!(commit.email, "jon@email.ca");
+                assert_eq!(commit.author.name, "Jon");
+                assert_eq!(commit.author.email, "jon@email.ca");
                 assert_eq!(commit.files, 1);
                 assert_eq!(commit.inserts, 0);
                 assert_eq!(commit.deletes, 2);
@@ -328,8 +324,8 @@ Date:   2022-11-24 22:11:50
                 let commit = commits.get(1).unwrap();
 
                 assert_eq!(commit.hash, "def456");
-                assert_eq!(commit.name, "Not Jon");
-                assert_eq!(commit.email, "notjon@email.org");
+                assert_eq!(commit.author.name, "Not Jon");
+                assert_eq!(commit.author.email, "notjon@email.org");
                 assert_eq!(commit.files, 11);
                 assert_eq!(commit.inserts, 22);
                 assert_eq!(commit.deletes, 33);
