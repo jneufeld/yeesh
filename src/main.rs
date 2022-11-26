@@ -19,7 +19,10 @@ ARGS:
 fn main() {
     check_args();
 
-    let _logs = get_git_logs();
+    let logs = get_git_logs();
+    let commits = parser::parse(&logs);
+
+    println!("{:?}", commits);
 }
 
 fn check_args() {
