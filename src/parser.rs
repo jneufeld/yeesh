@@ -76,8 +76,6 @@ pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
 
     let mut lines = input.split("\n").peekable();
 
-    // TODO This loop is too long and contains too much logic. Refactor into
-    // helper functions to make the code more readable.
     loop {
         match state {
             State::Start => match lines.peek() {
@@ -96,17 +94,11 @@ pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
                 }
             },
             State::Hash => {
-                let line = lines.next().ok_or(ParsingError::ExpectedMoreInput)?;
-
-                let hash = one_match(&HASH_REGEX, line)?;
-
-                commit.hash = hash;
+                commit.hash = parse_hash(lines.next())?;
                 state = State::Author;
             }
             State::Author => {
-                let line = lines.next().ok_or(ParsingError::ExpectedMoreInput)?;
-
-                let (name, email) = two_matches(&AUTHOR_REGEX, line)?;
+                let (name, email) = parse_author(lines.next())?;
 
                 commit.name = name;
                 commit.email = email;
@@ -114,41 +106,23 @@ pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
                 state = State::Date;
             }
             State::Date => {
-                let line = lines.next().ok_or(ParsingError::ExpectedMoreInput)?;
-
-                let date = one_match(&DATE_REGEX, line)?;
-                let date = date.trim();
-
-                let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
-                let date =
-                    PrimitiveDateTime::parse(date, format).map_err(|_| ParsingError::BadDate)?;
-
-                commit.date = date;
+                commit.date = parse_date(lines.next())?;
                 state = State::Stats;
             }
             State::Stats => {
-                let line = lines.next().ok_or(ParsingError::ExpectedMoreInput)?;
+                let line = lines.next();
 
-                let files = one_match(&FILES_REGEX, line);
-                let inserts = one_match(&INSERTS_REGEX, line);
-                let deletes = one_match(&DELETES_REGEX, line);
+                let files = parse_stat(&FILES_REGEX, line);
+                let inserts = parse_stat(&INSERTS_REGEX, line);
+                let deletes = parse_stat(&DELETES_REGEX, line);
 
                 if files.is_err() && inserts.is_err() && deletes.is_err() {
                     continue;
                 }
 
-                let files = files.unwrap_or_default();
-                let files = files.parse::<u32>().unwrap_or_default();
-
-                let inserts = inserts.unwrap_or_default();
-                let inserts = inserts.parse::<u32>().unwrap_or_default();
-
-                let deletes = deletes.unwrap_or_default();
-                let deletes = deletes.parse::<u32>().unwrap_or_default();
-
-                commit.files = files;
-                commit.inserts = inserts;
-                commit.deletes = deletes;
+                commit.files = files.unwrap_or_default();
+                commit.inserts = inserts.unwrap_or_default();
+                commit.deletes = deletes.unwrap_or_default();
 
                 state = State::Accept;
             }
@@ -160,6 +134,42 @@ pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
     }
 
     Ok(result)
+}
+
+fn parse_hash(line: Option<&str>) -> Result<String, ParsingError> {
+    let line = line.ok_or(ParsingError::ExpectedMoreInput)?;
+    let hash = one_match(&HASH_REGEX, line)?;
+
+    Ok(hash)
+}
+
+// TODO Make an author type to replace the tuple
+fn parse_author(line: Option<&str>) -> Result<(String, String), ParsingError> {
+    let line = line.ok_or(ParsingError::ExpectedMoreInput)?;
+    let (name, email) = two_matches(&AUTHOR_REGEX, line)?;
+
+    Ok((name, email))
+}
+
+fn parse_date(line: Option<&str>) -> Result<PrimitiveDateTime, ParsingError> {
+    let line = line.ok_or(ParsingError::ExpectedMoreInput)?;
+
+    let date = one_match(&DATE_REGEX, line)?;
+    let date = date.trim();
+
+    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+    let date = PrimitiveDateTime::parse(date, format).map_err(|_| ParsingError::BadDate)?;
+
+    Ok(date)
+}
+
+fn parse_stat(regex: &Regex, line: Option<&str>) -> Result<u32, ParsingError> {
+    let line = line.ok_or(ParsingError::ExpectedMoreInput)?;
+
+    let stat = one_match(regex, line)?;
+    let stat = stat.parse::<u32>().unwrap_or_default();
+
+    Ok(stat)
 }
 
 /// Expect a single match from the given regular expression on the input. Return
