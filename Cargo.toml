@@ -18,7 +18,7 @@ anyhow = "1.0"
 # Justification: sanity
 #
 # Seriously, who wants to implement their own regex engine for every project?
-regex = "1"
+regex = "1.7"
 
 # Justification: convenience
 #
