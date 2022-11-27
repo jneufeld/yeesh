@@ -1,29 +1,9 @@
+use anyhow::Context;
 use lazy_static::lazy_static;
 use regex::Regex;
 use time::{macros::format_description, PrimitiveDateTime};
 
 use crate::commit::{Author, Commit};
-
-/// Meager attempt to indicate what went wrong while parsing git logs
-#[derive(Debug, PartialEq, Eq)]
-pub enum ParsingError {
-    /// Used when parsing started for a commit but not all required fields have
-    /// been parsed. E.g. the input contains only the hash and author but no
-    /// message or stats.
-    ExpectedMoreInput,
-
-    /// Indicates an expected field isn't present. E.g. the author's name and
-    /// email follow the hash but aren't present.
-    NoMatch(String),
-
-    /// Parsing found the right type of line but wasn't able to extract the
-    /// required information. E.g. the commit's stats are present but not in the
-    /// expected format.
-    BadMatch,
-
-    /// Indicates the date is present but in an unexpected format
-    BadDate,
-}
 
 /// Represents the state machine's current state
 enum State {
@@ -68,7 +48,7 @@ lazy_static! {
 /// stats via `--stat` and a particular date format. These are defined in
 /// `main.rs` and are tightly coupled to the implementation. In other words,
 /// this is brittle!
-pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
+pub fn parse(input: &str) -> anyhow::Result<Vec<Commit>> {
     let mut result = Vec::new();
 
     let mut state = State::Hash;
@@ -132,35 +112,73 @@ pub fn parse(input: &str) -> Result<Vec<Commit>, ParsingError> {
     Ok(result)
 }
 
-fn parse_hash(line: Option<&str>) -> Result<String, ParsingError> {
-    let line = line.ok_or(ParsingError::ExpectedMoreInput)?;
+fn parse_hash(line: Option<&str>) -> anyhow::Result<String> {
+    let message = format!(
+        "Expected line to parse commit hash from on input {:?} but got None",
+        line
+    );
+
+    let line = line.context(message)?;
     let hash = one_match(&HASH_REGEX, line)?;
 
     Ok(hash)
 }
 
-fn parse_author(line: Option<&str>) -> Result<Author, ParsingError> {
-    let line = line.ok_or(ParsingError::ExpectedMoreInput)?;
+fn parse_author(line: Option<&str>) -> anyhow::Result<Author> {
+    let message = format!(
+        "Expected line to parse author from on input {:?} but got None",
+        line
+    );
+
+    let line = line.context(message)?;
+
+    // TODO use the `newtype` idiom so destructuring the tuple is harder to get
+    // wrong, i.e. confuse the order of two `String`s
     let (name, email) = two_matches(&AUTHOR_REGEX, line)?;
+
     let author = Author::new(name, email);
 
     Ok(author)
 }
 
-fn parse_date(line: Option<&str>) -> Result<PrimitiveDateTime, ParsingError> {
-    let line = line.ok_or(ParsingError::ExpectedMoreInput)?;
+fn parse_date(line: Option<&str>) -> anyhow::Result<PrimitiveDateTime> {
+    let message = format!(
+        "Expected line to parse date from on input {:?} but got None",
+        line
+    );
 
+    let line = line.context(message)?;
     let date = one_match(&DATE_REGEX, line)?;
+
+    // git's output likely contains whitespace that isn't relevant to this
+    // program's parsing. So far, it hasn't been cleaned/modified in any way.
+    // Call `trim()` to remove such whitespace.
     let date = date.trim();
 
+    // Yes, it's sort of hard-coding, but `year`, `month`, etc. are in the API
+    // documentation as an example
     let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
-    let date = PrimitiveDateTime::parse(date, format).map_err(|_| ParsingError::BadDate)?;
+
+    let message = format!(
+        "Expected line to parse date from on input {:?} but got None",
+        line
+    );
+
+    let date = PrimitiveDateTime::parse(date, format).context(message)?;
 
     Ok(date)
 }
 
-fn parse_stat(regex: &Regex, line: Option<&str>) -> Result<u32, ParsingError> {
-    let line = line.ok_or(ParsingError::ExpectedMoreInput)?;
+// TODO is it more idiomatic to return `usize` when I can't see a need for the
+// particular sizing? Otherwise, the restricting the return values to
+// non-negative should be sufficient.
+fn parse_stat(regex: &Regex, line: Option<&str>) -> anyhow::Result<u32> {
+    let message = format!(
+        "Expected line to parse stat {:?} on input {:?} but got None",
+        regex, line
+    );
+
+    let line = line.context(message)?;
 
     let stat = one_match(regex, line)?;
     let stat = stat.parse::<u32>().unwrap_or_default();
@@ -170,39 +188,53 @@ fn parse_stat(regex: &Regex, line: Option<&str>) -> Result<u32, ParsingError> {
 
 /// Expect a single match from the given regular expression on the input. Return
 /// the value as a `String` or a parsing error.
-fn one_match(regex: &Regex, line: &str) -> Result<String, ParsingError> {
-    match regex.captures(line) {
-        None => {
-            let message = format!("Match {:?} on {:?} yielded None", regex, line);
-            Err(ParsingError::NoMatch(message))
-        }
-        Some(cap) => {
-            let mat = cap.get(1).ok_or(ParsingError::BadMatch)?;
-            let val = mat.as_str().to_string();
+fn one_match(regex: &Regex, line: &str) -> anyhow::Result<String> {
+    let message = format!(
+        "Expected first match from {:?} on input {:?} but got None",
+        regex, line
+    );
 
-            Ok(val)
-        }
-    }
+    let captures = regex.captures(line).context(message)?;
+
+    // The 0th capture, i.e. `get(0)`, returns all captures. That may seem a little
+    // unusual, but is specifically mentioned in the API documentation. This
+    // comment passes that relavent information along.
+    let first_match = captures
+        .get(1)
+        .context("Can't match on the first part of the regex")?;
+
+    let value = String::from(first_match.as_str());
+
+    Ok(value)
 }
 
 /// Expect two matches from the given regular expression on the input. Return
 /// the value as a `String` or a parsing error.
-fn two_matches(regex: &Regex, line: &str) -> Result<(String, String), ParsingError> {
-    match regex.captures(line) {
-        None => {
-            let message = format!("Match {:?} on {:?} yielded None", regex, line);
-            Err(ParsingError::NoMatch(message))
-        }
-        Some(cap) => {
-            let first_mat = cap.get(1).ok_or(ParsingError::BadMatch)?;
-            let first_val = String::from(first_mat.as_str());
+fn two_matches(regex: &Regex, line: &str) -> anyhow::Result<(String, String)> {
+    let message = format!(
+        "Expected first two matches from {:?} on input {:?} but got None",
+        regex, line
+    );
 
-            let second_mat = cap.get(2).ok_or(ParsingError::BadMatch)?;
-            let second_val = String::from(second_mat.as_str());
+    let captures = regex.captures(line).context(message)?;
 
-            Ok((first_val, second_val))
-        }
-    }
+    // The 0th capture, i.e. `get(0)`, returns all captures. That may seem a little
+    // unusual, but is specifically mentioned in the API documentation. This
+    // comment passes that relavent information along.
+    //
+    // TODO When worthwhile documentation about APIs is copy/pasted it suggests
+    // there may be a need to refactor. See `one_match()` above.
+    let first_match = captures
+        .get(1)
+        .context("Can't match on the first part of the regex")?;
+    let second_match = captures
+        .get(2)
+        .context("Can't match on the second part of the regex")?;
+
+    let first_value = String::from(first_match.as_str());
+    let second_val = String::from(second_match.as_str());
+
+    Ok((first_value, second_val))
 }
 
 #[cfg(test)]

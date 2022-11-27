@@ -6,6 +6,15 @@ edition = "2021"
 
 [dependencies]
 
+# Justification: convenience
+#
+# This is the first time I've used a dependency for error handling. My
+# understanding, based on `https://blessed.rs`, is that `anyhow` is best for
+# the average application. I'm curious how it'll feel and wonder how it could
+# affect performance -- even though obviously this isn't the type of program
+# where performance is critical.
+anyhow = "1.0"
+
 # Justification: sanity
 #
 # Seriously, who wants to implement their own regex engine for every project?
