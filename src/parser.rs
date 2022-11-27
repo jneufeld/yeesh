@@ -1,7 +1,7 @@
 use anyhow::Context;
 use lazy_static::lazy_static;
 use regex::Regex;
-use time::{macros::format_description, PrimitiveDateTime};
+use time::{format_description::well_known::Rfc2822, OffsetDateTime};
 
 use crate::commit::{Author, Commit};
 
@@ -54,7 +54,7 @@ pub fn parse(input: &str) -> anyhow::Result<Vec<Commit>> {
     let mut state = State::Hash;
     let mut commit = Commit::default();
 
-    let mut lines = input.split("\n").peekable();
+    let mut lines = input.split('\n').peekable();
 
     loop {
         match state {
@@ -65,7 +65,7 @@ pub fn parse(input: &str) -> anyhow::Result<Vec<Commit>> {
                 // Ignore whitespace lines by consuming the line and continuing
                 // to the next
                 Some(line) => {
-                    if line.trim().len() == 0 {
+                    if line.trim().is_empty() {
                         let _blank = lines.next();
                         continue;
                     }
@@ -141,7 +141,7 @@ fn parse_author(line: Option<&str>) -> anyhow::Result<Author> {
     Ok(author)
 }
 
-fn parse_date(line: Option<&str>) -> anyhow::Result<PrimitiveDateTime> {
+fn parse_date(line: Option<&str>) -> anyhow::Result<OffsetDateTime> {
     let message = format!(
         "Expected line to parse date from on input {:?} but got None",
         line
@@ -155,16 +155,7 @@ fn parse_date(line: Option<&str>) -> anyhow::Result<PrimitiveDateTime> {
     // Call `trim()` to remove such whitespace.
     let date = date.trim();
 
-    // Yes, it's sort of hard-coding, but `year`, `month`, etc. are in the API
-    // documentation as an example
-    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
-
-    let message = format!(
-        "Expected line to parse date from on input {:?} but got None",
-        line
-    );
-
-    let date = PrimitiveDateTime::parse(date, format).context(message)?;
+    let date = OffsetDateTime::parse(date, &Rfc2822)?;
 
     Ok(date)
 }

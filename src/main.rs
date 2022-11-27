@@ -45,7 +45,7 @@ fn get_git_logs() -> String {
     let proc_output = Command::new("git")
         .arg("log")
         .arg("--stat")
-        .arg("--date=format:'%Y-%m-%d %H:%M:%S'")
+        .arg("--date=rfc")
         .output()
         .unwrap();
 
