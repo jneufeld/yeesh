@@ -20,9 +20,11 @@ fn main() {
     check_args();
 
     let logs = get_git_logs();
-    let commits = parser::parse(&logs);
 
-    println!("{:?}", commits);
+    match parser::parse(&logs) {
+        Ok(commits) => print_by_hour(commits),
+        Err(why) => eprintln!("Error parsing git logs: {:?}", why),
+    }
 }
 
 fn check_args() {
@@ -54,7 +56,7 @@ fn get_git_logs() -> String {
     git_logs.to_string()
 }
 
-fn print_by_hour(commits: &Vec<Commit>) {
+fn print_by_hour(commits: Vec<Commit>) {
     // This is used twice in the function. I have already used wrong magic number
     // twice so have concluded it wise to define this here.
     let hours_in_day = 24;
