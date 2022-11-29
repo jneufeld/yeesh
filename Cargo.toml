@@ -44,3 +44,12 @@ lazy_static = "1.4.0"
 #
 # `parsing` makes it easy to create dates and times from raw input.
 time = { version = "0.3.17", features = ["macros", "parsing"] }
+
+# Following the best recommendations I know to optimize for binary size above
+# other factors like speed:
+#
+# https://github.com/johnthagen/min-sized-rust#strip-symbols-from-binary
+[profile.release]
+strip = true
+lto = true
+opt-level = "z"
