@@ -1,17 +1,22 @@
 mod commit;
+mod histogram;
 mod parser;
 
 use std::collections::HashMap;
 use std::process::{self, Command};
 use std::str;
 
+use histogram::Histogram;
+
 use crate::commit::Commit;
+use crate::histogram::Kind;
 
 const HELP: &str = "\
 yeesh: simple stats for git repositories
 
 USAGE:
   yeesh [-h]
+
 ARGS:
   -h, --help    Prints this message
 ";
@@ -23,6 +28,7 @@ fn main() {
 
     match parser::parse(&logs) {
         Ok(commits) => print_by_hour(commits),
+        //Ok(commits) => print_histogram(commits),
         Err(why) => eprintln!("Error parsing git logs: {:?}", why),
     }
 }
@@ -82,4 +88,27 @@ fn print_by_hour(commits: Vec<Commit>) {
         let commits = by_hour.get(&hour).unwrap();
         println!("{:02} | {}", hour, "-".repeat(*commits));
     }
+}
+
+fn print_histogram(commits: Vec<Commit>) {
+    let by_hour = Histogram::new(Kind::ByHour, &commits);
+
+    println!("By hour:");
+    println!("min: {}", by_hour.min());
+    println!("max: {}", by_hour.max());
+    println!("mean: {}", by_hour.mean());
+    println!("median: {}", by_hour.median());
+    println!("std dev: {}", by_hour.std_dev());
+    println!("total: {}", by_hour.len());
+    println!();
+
+    let by_weekday = Histogram::new(Kind::ByWeekday, &commits);
+
+    println!("By weekday:");
+    println!("min: {}", by_weekday.min());
+    println!("max: {}", by_weekday.max());
+    println!("mean: {}", by_weekday.mean());
+    println!("median: {}", by_weekday.median());
+    println!("std dev: {}", by_weekday.std_dev());
+    println!("total: {}", by_weekday.len());
 }

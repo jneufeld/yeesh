@@ -15,10 +15,18 @@ edition = "2021"
 # where performance is critical.
 anyhow = "1.0"
 
-# Justification: sanity
+# Justification: convenience/learning
 #
-# Seriously, who wants to implement their own regex engine for every project?
-regex = "1.7"
+# I'm looking for an excuse to use this crate. It has ports from Java to most
+# high-level languages, and Rust's looks excellent.
+hdrhistogram = "7.5.2"
+
+# Justification: performance
+#
+# Regular expressions should be compiled only once, and the `regex` crate
+# recommends using `lazy_static` to accomplish this. The alternative is either
+# messy code or the anti-pattern of re-compiling regular expressions.
+lazy_static = "1.4.0"
 
 # Justification: convenience
 #
@@ -27,12 +35,10 @@ regex = "1.7"
 # always convenient. This is somewhere inbetween.
 pico-args = "0.5"
 
-# Justification: performance
+# Justification: sanity
 #
-# Regular expressions should be compiled only once, and the `regex` crate
-# recommends using `lazy_static` to accomplish this. The alternative is either
-# messy code or the anti-pattern of re-compiling regular expressions.
-lazy_static = "1.4.0"
+# Seriously, who wants to implement their own regex engine for every project?
+regex = "1.7"
 
 # Justification: convenience
 #
