@@ -2,11 +2,8 @@ mod commit;
 mod histogram;
 mod parser;
 
-use std::collections::HashMap;
 use std::process::{self, Command};
 use std::str;
-
-use histogram::Histogram;
 
 use crate::commit::Commit;
 use crate::histogram::Kind;
@@ -27,8 +24,7 @@ fn main() {
     let logs = get_git_logs();
 
     match parser::parse(&logs) {
-        Ok(commits) => print_by_hour(commits),
-        //Ok(commits) => print_histogram(commits),
+        Ok(commits) => print_histogram(commits),
         Err(why) => eprintln!("Error parsing git logs: {:?}", why),
     }
 }
@@ -62,53 +58,26 @@ fn get_git_logs() -> String {
     git_logs.to_string()
 }
 
-fn print_by_hour(commits: Vec<Commit>) {
-    // This is used twice in the function. I have already used wrong magic number
-    // twice so have concluded it wise to define this here.
-    let hours_in_day = 24;
-
-    let mut by_hour = HashMap::new();
-
-    for i in 0..hours_in_day {
-        by_hour.insert(i, 0);
-    }
-
-    for commit in commits {
-        let date = commit.date;
-        let hour = date.hour();
-
-        // Getting the current value inside the `insert` is ugly but satisfies
-        // a concerning compiler error message regarding mutable borrows.
-        by_hour.insert(hour, 1 + by_hour.get(&hour).unwrap());
-    }
-
-    println!("Commits by hour:");
-
-    for hour in 0..hours_in_day {
-        let commits = by_hour.get(&hour).unwrap();
-        println!("{:02} | {}", hour, "-".repeat(*commits));
-    }
-}
-
 fn print_histogram(commits: Vec<Commit>) {
-    let by_hour = Histogram::new(Kind::ByHour, &commits);
-
     println!("By hour:");
-    println!("min: {}", by_hour.min());
-    println!("max: {}", by_hour.max());
-    println!("mean: {}", by_hour.mean());
-    println!("median: {}", by_hour.median());
-    println!("std dev: {}", by_hour.std_dev());
-    println!("total: {}", by_hour.len());
+
+    let by_hour = histogram::of_kind(Kind::ByHour, &commits);
+
+    for hour in 1..24 {
+        let count = by_hour.count_at(hour) as usize;
+        println!("{:02} | {}", hour, "-".repeat(count));
+    }
+
     println!();
 
-    let by_weekday = Histogram::new(Kind::ByWeekday, &commits);
-
     println!("By weekday:");
-    println!("min: {}", by_weekday.min());
-    println!("max: {}", by_weekday.max());
-    println!("mean: {}", by_weekday.mean());
-    println!("median: {}", by_weekday.median());
-    println!("std dev: {}", by_weekday.std_dev());
-    println!("total: {}", by_weekday.len());
+
+    let by_weekday = histogram::of_kind(Kind::ByWeekday, &commits);
+
+    for weekday in 1..7 {
+        let count = by_weekday.count_at(weekday) as usize;
+        println!("{:02} | {}", weekday, "-".repeat(count));
+    }
+
+    println!("total: {}", by_hour.len());
 }

@@ -1,66 +1,39 @@
-use crate::commit::Commit;
+use hdrhistogram::Histogram;
 
-pub struct Histogram {
-    histogram: hdrhistogram::Histogram<u8>,
-}
+use crate::commit::Commit;
 
 pub enum Kind {
     ByHour,
     ByWeekday,
 }
 
-impl Histogram {
-    pub fn new(kind: Kind, commits: &Vec<Commit>) -> Histogram {
-        // TODO obviously refactor this... yeesh
-        let histogram = match kind {
-            Kind::ByHour => {
-                let mut h = hdrhistogram::Histogram::new_with_bounds(1, 24, 1).unwrap();
+pub fn of_kind(kind: Kind, commits: &Vec<Commit>) -> Histogram<u8> {
+    match kind {
+        Kind::ByHour => by_hour(commits),
+        Kind::ByWeekday => by_weekday(commits),
+    }
+}
 
-                for commit in commits {
-                    let hour = get_hour(&commit);
-                    h.record(hour).unwrap();
-                }
+fn by_hour(commits: &Vec<Commit>) -> Histogram<u8> {
+    let mut histogram = Histogram::new_with_bounds(1, 24, 1).unwrap();
 
-                h
-            }
-            Kind::ByWeekday => {
-                let mut h = hdrhistogram::Histogram::new_with_bounds(1, 7, 1).unwrap();
-
-                for commit in commits {
-                    let weekday = get_weekday(&commit);
-                    h.record(weekday).unwrap();
-                }
-
-                h
-            }
-        };
-
-        Histogram { histogram }
+    for commit in commits {
+        let hour = get_hour(commit);
+        histogram.record(hour).unwrap();
     }
 
-    pub fn min(&self) -> u64 {
-        self.histogram.min_nz()
+    histogram
+}
+
+fn by_weekday(commits: &Vec<Commit>) -> Histogram<u8> {
+    let mut histogram = Histogram::new_with_bounds(1, 7, 1).unwrap();
+
+    for commit in commits {
+        let weekday = get_weekday(commit);
+        histogram.record(weekday).unwrap();
     }
 
-    pub fn max(&self) -> u64 {
-        self.histogram.max()
-    }
-
-    pub fn mean(&self) -> f64 {
-        self.histogram.mean()
-    }
-
-    pub fn median(&self) -> u64 {
-        self.histogram.value_at_percentile(50.0)
-    }
-
-    pub fn std_dev(&self) -> f64 {
-        self.histogram.stdev()
-    }
-
-    pub fn len(&self) -> u64 {
-        self.histogram.len()
-    }
+    histogram
 }
 
 fn get_hour(commit: &Commit) -> u64 {
