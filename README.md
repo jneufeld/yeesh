@@ -1,4 +1,4 @@
-# git_hours
+# yeesh
 
 A CLI tool that prints a histogram of commits by hour for a git repository.
 
