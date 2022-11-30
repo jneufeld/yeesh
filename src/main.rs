@@ -8,10 +8,10 @@ use std::str;
 use crate::commit::Commit;
 
 const HELP: &str = "\
-git_hours: simple stats for git repositories
+yeesh: simple stats for git repositories
 
 USAGE:
-  git_hours [-h]
+  yeesh [-h]
 ARGS:
   -h, --help    Prints this message
 ";

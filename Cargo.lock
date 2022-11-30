@@ -18,17 +18,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "216261ddc8289130e551ddcd5ce8a064710c0d064a4d2895c67151c92b5443f6"
 
 [[package]]
-name = "git_hours"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "lazy_static",
- "pico-args",
- "regex",
- "time",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -93,4 +82,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d967f99f534ca7e495c575c62638eebc2898a8c84c119b89e250477bc4ba16b2"
 dependencies = [
  "time-core",
+]
+
+[[package]]
+name = "yeesh"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "lazy_static",
+ "pico-args",
+ "regex",
+ "time",
 ]

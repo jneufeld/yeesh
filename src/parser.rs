@@ -234,7 +234,7 @@ mod tests {
     fn all_stats() {
         let input = r"commit a75c00d4baa851fbd03d514cd980c999153fc21f
 Author: Jonathan Neufeld <jneufeld@alumni.ubc.ca>
-Date:   2022-11-24 22:11:50
+Date:   Mon, 28 Nov 2022 16:52:42 -0800
 
   Refactor parser error handling
 
@@ -262,7 +262,7 @@ Date:   2022-11-24 22:11:50
     fn no_deletes() {
         let input = r"commit a75
 Author: Jonathan Neufeld <jneufeld@alumni.ubc.ca>
-Date:   2022-11-24 22:11:50
+Date:   Mon, 28 Nov 2022 16:52:42 -0800
 
   Refactor parser error handling
 
@@ -289,7 +289,7 @@ Date:   2022-11-24 22:11:50
     fn no_inserts() {
         let input = r"commit a75
 Author: Jonathan Neufeld <jneufeld@alumni.ubc.ca>
-Date:   2022-11-24 22:11:50
+Date:   Mon, 28 Nov 2022 16:52:42 -0800
 
   Refactor parser error handling
 
@@ -316,7 +316,7 @@ Date:   2022-11-24 22:11:50
     fn two_commits() {
         let input = r"commit abc123
 Author: Jon <jon@email.ca>
-Date:   2022-11-24 22:11:50
+Date:   Mon, 28 Nov 2022 16:52:42 -0800
 
   Do things
 
@@ -324,7 +324,7 @@ Date:   2022-11-24 22:11:50
   
 commit def456
 Author: Not Jon <notjon@email.org>
-Date:   2022-11-24 22:11:50
+Date:   Mon, 20 Nov 2021 12:50:02 -0800
 
   More things
 
