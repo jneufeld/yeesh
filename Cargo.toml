@@ -30,7 +30,7 @@ lazy_static = "1.4.0"
 
 # Justification: convenience
 #
-# Feature-rich crates like clap are capable of more but donny doesn't need that.
+# Feature-rich crates like clap are capable of more but yeesh doesn't need that.
 # Conversely, writing arg parsing with the standard library is fine but not
 # always convenient. This is somewhere inbetween.
 pico-args = "0.5"
@@ -39,6 +39,10 @@ pico-args = "0.5"
 #
 # Seriously, who wants to implement their own regex engine for every project?
 regex = "1.7"
+
+
+# Justification: fun!
+termion = "2.0"
 
 # Justification: convenience
 #
